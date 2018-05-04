@@ -4,6 +4,28 @@ const DEFAULT_HEAP_SIZE: usize = 1 << 16;
 #[derive(Clone, Copy)]
 struct GcPtr(usize);
 
+impl GcPtr {
+    fn mark(&self, heap: &mut Vec<Option<Object>>) {
+        let mut object = heap[self.0].unwrap();
+
+        if object.marked {
+            return;
+        }
+
+        object.marked = true;
+
+        if let ObjectType::Pair(pair) = object.obj_type {
+            if let Some(head) = pair.head {
+                head.mark(heap);
+            }
+
+            if let Some(tail) = pair.tail {
+                tail.mark(heap);
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Object {
     marked: bool,
@@ -53,27 +75,7 @@ impl Vm {
 
     fn mark_all(&mut self) {
         for object in self.stack.iter() {
-            Self::mark(&mut self.heap, *object);
-        }
-    }
-
-    fn mark(heap: &mut Vec<Option<Object>>, obj_ptr: GcPtr) {
-        let mut object = heap[obj_ptr.0].unwrap();
-
-        if object.marked {
-            return;
-        }
-
-        object.marked = true;
-
-        if let ObjectType::Pair(pair) = object.obj_type {
-            if let Some(head) = pair.head {
-                Self::mark(heap, head);
-            }
-
-            if let Some(tail) = pair.tail {
-                Self::mark(heap, tail);
-            }
+            object.mark(&mut self.heap);
         }
     }
 
