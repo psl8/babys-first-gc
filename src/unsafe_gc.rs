@@ -26,16 +26,20 @@ pub struct Pair {
 
 impl GcPtr<Object> {
     unsafe fn mark(&mut self) {
-        if let Some(mut obj_ptr) = self.0 {
-            if obj_ptr.as_ref().marked {
-                return;
+        let mut obj_ptr = self.0.unwrap();
+
+        if obj_ptr.as_ref().marked {
+            return;
+        }
+
+        obj_ptr.as_mut().marked = true;
+
+        if let ObjectType::Pair(mut pair) = obj_ptr.as_mut().obj_type {
+            if let Some(head) = pair.head.0 {
+                GcPtr(Some(head)).mark();
             }
-
-            obj_ptr.as_mut().marked = true;
-
-            if let ObjectType::Pair(mut pair) = obj_ptr.as_mut().obj_type {
-                pair.head.mark();
-                pair.tail.mark();
+            if let Some(tail) = pair.tail.0 {
+                GcPtr(Some(tail)).mark();
             }
         }
     }
