@@ -3,11 +3,11 @@ use std::ptr::NonNull;
 const INITIAL_GC_THRESHOLD: usize = 32;
 
 #[derive(Clone, Copy)]
-struct GcPtr<T>(Option<NonNull<T>>);
+struct GcPtr<T>(NonNull<T>);
 
 #[derive(Clone, Copy)]
 pub struct Object {
-    next: GcPtr<Object>,
+    next: Option<GcPtr<Object>>,
     marked: bool,
     obj_type: ObjectType,
 }
@@ -20,26 +20,24 @@ pub enum ObjectType {
 
 #[derive(Clone, Copy)]
 pub struct Pair {
-    head: GcPtr<Object>,
-    tail: GcPtr<Object>,
+    head: Option<GcPtr<Object>>,
+    tail: Option<GcPtr<Object>>,
 }
 
 impl GcPtr<Object> {
     unsafe fn mark(&mut self) {
-        let mut obj_ptr = self.0.unwrap();
-
-        if obj_ptr.as_ref().marked {
+        if self.0.as_ref().marked {
             return;
         }
 
-        obj_ptr.as_mut().marked = true;
+        self.0.as_mut().marked = true;
 
-        if let ObjectType::Pair(mut pair) = obj_ptr.as_mut().obj_type {
-            if let Some(head) = pair.head.0 {
-                GcPtr(Some(head)).mark();
+        if let ObjectType::Pair(pair) = self.0.as_mut().obj_type {
+            if let Some(mut head) = pair.head {
+                head.mark();
             }
-            if let Some(tail) = pair.tail.0 {
-                GcPtr(Some(tail)).mark();
+            if let Some(mut tail) = pair.tail {
+                tail.mark();
             }
         }
     }
@@ -48,7 +46,7 @@ impl GcPtr<Object> {
 pub struct Vm {
     num_objects: usize,
     max_objects: usize,
-    first_object: GcPtr<Object>,
+    first_object: Option<GcPtr<Object>>,
     stack: Vec<GcPtr<Object>>,
 }
 
@@ -57,7 +55,7 @@ impl Vm {
         Vm {
             num_objects: 0,
             max_objects: INITIAL_GC_THRESHOLD,
-            first_object: GcPtr(None),
+            first_object: None,
             stack: Vec::new(),
         }
     }
@@ -70,9 +68,9 @@ impl Vm {
 
     unsafe fn sweep(&mut self) {
         let mut object = self.first_object;
-        while let Some(mut obj_ptr) = object.0 {
-            if !obj_ptr.as_ref().marked {
-                let unreached = obj_ptr.as_mut();
+        while let Some(mut obj_ptr) = object {
+            if !obj_ptr.0.as_ref().marked {
+                let unreached = obj_ptr.0.as_mut();
 
                 object = unreached.next;
                 self.num_objects -= 1;
@@ -80,8 +78,8 @@ impl Vm {
                 // This takes ownership then Drops, deallocating the object
                 drop(Box::from_raw(unreached));
             } else {
-                obj_ptr.as_mut().marked = false;
-                object = obj_ptr.as_ref().next;
+                obj_ptr.0.as_mut().marked = false;
+                object = obj_ptr.0.as_ref().next;
             }
         }
     }
@@ -107,12 +105,12 @@ impl Vm {
         }
 
         let mut box_object = Box::new(Object {
-            next: GcPtr(self.first_object.0),
+            next: self.first_object,
             marked: false,
             obj_type,
         });
-        let object = GcPtr(NonNull::new(&mut *box_object));
-        self.first_object = object;
+        let object = GcPtr(NonNull::new(&mut *box_object).unwrap());
+        self.first_object = Some(object);
 
         self.num_objects += 1;
         object
@@ -124,8 +122,8 @@ impl Vm {
     }
 
     pub fn push_pair(&mut self) {
-        let tail = self.stack.pop().expect("Stack underflow!");
-        let head = self.stack.pop().expect("Stack underflow!");
+        let tail = Some(self.stack.pop().expect("Stack underflow!"));
+        let head = Some(self.stack.pop().expect("Stack underflow!"));
         let obj = self.new_object(ObjectType::Pair( Pair { head, tail }));
         self.stack.push(obj);
     }
