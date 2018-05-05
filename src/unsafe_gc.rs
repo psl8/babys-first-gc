@@ -2,23 +2,23 @@ use std::ptr::NonNull;
 
 const INITIAL_GC_THRESHOLD: usize = 32;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct GcPtr<T>(NonNull<T>);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Object {
     next: Option<GcPtr<Object>>,
     marked: bool,
     obj_type: ObjectType,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum ObjectType {
     Int(i64),
     Pair(Pair),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Pair {
     head: Option<GcPtr<Object>>,
     tail: Option<GcPtr<Object>>,
@@ -133,5 +133,32 @@ impl Drop for Vm {
     fn drop(&mut self) {
         self.stack = vec![];
         self.gc();
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_gc() {
+        let mut vm = Vm::new();
+
+        for i in 0..64 {
+            vm.push_int(i);
+        }
+        for _ in 0..63 {
+            vm.push_pair();
+        }
+
+        assert_eq!(vm.stack.len(), 1);
+        assert_ne!(vm.num_objects, 0);
+        assert!(vm.first_object.is_some());
+
+        vm.stack.pop();
+
+        vm.gc();
+
+        assert_eq!(vm.num_objects, 0);
     }
 }
