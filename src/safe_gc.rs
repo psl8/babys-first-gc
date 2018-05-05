@@ -87,6 +87,8 @@ impl Vm {
         {
             let mut obj = object.unwrap();
             if !obj.marked {
+                self.num_objects -= 1;
+
                 *object = None;
                 self.free_list.push(GcPtr(i));
             } else {
@@ -172,6 +174,7 @@ mod test {
 
         vm.gc();
 
+        assert_eq!(vm.num_objects, 0);
         assert!(vm.heap.iter().filter(|e| e.is_some()).collect::<Vec<_>>().is_empty())
     }
 }
