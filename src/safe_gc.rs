@@ -13,6 +13,7 @@ impl GcPtr {
         }
 
         object.marked = true;
+        heap[self.0] = Some(object);
 
         if let ObjectType::Pair(pair) = object.obj_type {
             if let Some(head) = pair.head {
