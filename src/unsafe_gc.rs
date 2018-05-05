@@ -142,9 +142,10 @@ impl Drop for Vm {
 #[cfg(test)]
 mod test {
     use super::*;
+    use rust_test::*;
 
     #[test]
-    fn test_gc() {
+    fn test_unsafe_gc() {
         let mut vm = Vm::new();
 
         for i in 0..64 {
@@ -164,5 +165,22 @@ mod test {
 
         assert_eq!(vm.num_objects, 0);
         assert_eq!(vm.objects.len(), 0);
+    }
+
+    #[bench]
+    fn bench_unsafe_gc(b: &mut Bencher) {
+        let mut vm = Vm::new();
+        b.iter(|| {
+            let num_objects = black_box(64);
+            for i in 0..num_objects {
+                vm.push_int(i);
+            }
+            for _ in 0..(num_objects - 1) {
+                vm.push_pair();
+            }
+
+            vm.stack.pop();
+            vm.gc();
+        });
     }
 }
