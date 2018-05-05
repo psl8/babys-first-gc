@@ -130,6 +130,10 @@ impl Vm {
         let obj = self.new_object(ObjectType::Pair( Pair { head, tail }));
         self.stack.push(obj);
     }
+
+    pub fn drop(&mut self) {
+        self.stack.pop();
+    }
 }
 
 impl Drop for Vm {
@@ -142,7 +146,6 @@ impl Drop for Vm {
 #[cfg(test)]
 mod test {
     use super::*;
-    use rust_test::*;
 
     #[test]
     fn test_unsafe_gc() {
@@ -165,22 +168,5 @@ mod test {
 
         assert_eq!(vm.num_objects, 0);
         assert_eq!(vm.objects.len(), 0);
-    }
-
-    #[bench]
-    fn bench_unsafe_gc(b: &mut Bencher) {
-        let mut vm = Vm::new();
-        b.iter(|| {
-            let num_objects = black_box(64);
-            for i in 0..num_objects {
-                vm.push_int(i);
-            }
-            for _ in 0..(num_objects - 1) {
-                vm.push_pair();
-            }
-
-            vm.stack.pop();
-            vm.gc();
-        });
     }
 }

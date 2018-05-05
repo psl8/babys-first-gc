@@ -141,6 +141,10 @@ impl Vm {
         let obj = self.new_object(ObjectType::Pair(Pair { head, tail }));
         self.stack.push(obj);
     }
+
+    pub fn drop(&mut self) {
+        self.stack.pop();
+    }
 }
 
 // I think this is unnecessary, actually
@@ -154,7 +158,6 @@ impl Drop for Vm {
 #[cfg(test)]
 mod test {
     use super::*;
-    use rust_test::*;
 
     #[test]
     fn test_safe_gc() {
@@ -177,22 +180,5 @@ mod test {
 
         assert_eq!(vm.num_objects, 0);
         assert!(vm.heap.iter().filter(|e| e.is_some()).collect::<Vec<_>>().is_empty())
-    }
-
-    #[bench]
-    fn bench_safe_gc(b: &mut Bencher) {
-        let mut vm = Vm::new();
-        b.iter(|| {
-            let num_objects = black_box(64);
-            for i in 0..num_objects {
-                vm.push_int(i);
-            }
-            for _ in 0..(num_objects - 1) {
-                vm.push_pair();
-            }
-
-            vm.stack.pop();
-            vm.gc();
-        });
     }
 }
