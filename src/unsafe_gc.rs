@@ -7,7 +7,6 @@ struct GcPtr<T>(NonNull<T>);
 
 #[derive(Clone, Copy, Debug)]
 pub struct Object {
-    next: Option<GcPtr<Object>>,
     marked: bool,
     obj_type: ObjectType,
 }
@@ -36,6 +35,7 @@ impl GcPtr<Object> {
             if let Some(mut head) = pair.head {
                 head.mark();
             }
+
             if let Some(mut tail) = pair.tail {
                 tail.mark();
             }
@@ -46,7 +46,7 @@ impl GcPtr<Object> {
 pub struct Vm {
     num_objects: usize,
     max_objects: usize,
-    first_object: Option<GcPtr<Object>>,
+    objects: Vec<GcPtr<Object>>,
     stack: Vec<GcPtr<Object>>,
 }
 
@@ -55,7 +55,7 @@ impl Vm {
         Vm {
             num_objects: 0,
             max_objects: INITIAL_GC_THRESHOLD,
-            first_object: None,
+            objects: Vec::new(),
             stack: Vec::new(),
         }
     }
@@ -67,21 +67,22 @@ impl Vm {
     }
 
     unsafe fn sweep(&mut self) {
-        let mut object = self.first_object;
-        while let Some(mut obj_ptr) = object {
-            if !obj_ptr.0.as_ref().marked {
-                let unreached = obj_ptr.0.as_mut();
+        let mut live_objects = Vec::new();
 
-                object = unreached.next;
+        for object in self.objects.iter_mut() {
+            if !object.0.as_ref().marked {
+                let unreached = object.0.as_mut();
                 self.num_objects -= 1;
 
                 // This takes ownership then Drops, deallocating the object
                 drop(Box::from_raw(unreached));
             } else {
-                obj_ptr.0.as_mut().marked = false;
-                object = obj_ptr.0.as_ref().next;
+                object.0.as_mut().marked = false;
+                live_objects.push(*object);
             }
         }
+
+        self.objects = live_objects;
     }
 
     pub fn gc(&mut self) {
@@ -105,12 +106,14 @@ impl Vm {
         }
 
         let mut box_object = Box::new(Object {
-            next: self.first_object,
             marked: false,
             obj_type,
         });
         let object = GcPtr(NonNull::new(&mut *box_object).unwrap());
-        self.first_object = Some(object);
+        // Don't deallocate our object
+        ::std::mem::forget(box_object);
+
+        self.objects.push(object);
 
         self.num_objects += 1;
         object
@@ -153,12 +156,13 @@ mod test {
 
         assert_eq!(vm.stack.len(), 1);
         assert_ne!(vm.num_objects, 0);
-        assert!(vm.first_object.is_some());
+        assert_ne!(vm.objects.len(), 0);
 
         vm.stack.pop();
 
         vm.gc();
 
         assert_eq!(vm.num_objects, 0);
+        assert_eq!(vm.objects.len(), 0);
     }
 }
