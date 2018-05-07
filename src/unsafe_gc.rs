@@ -2,22 +2,22 @@ use std::ptr::NonNull;
 
 const INITIAL_GC_THRESHOLD: usize = 32;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct GcPtr<T>(NonNull<T>);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Object {
     marked: bool,
     obj_type: ObjectType,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum ObjectType {
     Int(i64),
     Pair(Pair),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Pair {
     head: Option<GcPtr<Object>>,
     tail: Option<GcPtr<Object>>,
@@ -31,12 +31,12 @@ impl GcPtr<Object> {
 
         self.0.as_mut().marked = true;
 
-        if let ObjectType::Pair(pair) = self.0.as_mut().obj_type {
-            if let Some(mut head) = pair.head {
+        if let ObjectType::Pair(ref mut pair) = self.0.as_mut().obj_type {
+            if let Some(ref mut head) = pair.head {
                 head.mark();
             }
 
-            if let Some(mut tail) = pair.tail {
+            if let Some(ref mut tail) = pair.tail {
                 tail.mark();
             }
         }
@@ -69,16 +69,16 @@ impl Vm {
     unsafe fn sweep(&mut self) {
         let mut live_objects = Vec::new();
 
-        for object in self.objects.iter_mut() {
-            if !object.0.as_ref().marked {
-                let unreached = object.0.as_mut();
+        for object_ptr in self.objects.iter_mut() {
+            if !object_ptr.0.as_ref().marked {
+                let unreached = object_ptr.0.as_mut();
                 self.num_objects -= 1;
 
                 // This takes ownership then Drops, deallocating the object
                 drop(Box::from_raw(unreached));
             } else {
-                object.0.as_mut().marked = false;
-                live_objects.push(*object);
+                object_ptr.0.as_mut().marked = false;
+                live_objects.push(object_ptr.clone());
             }
         }
 
@@ -113,7 +113,7 @@ impl Vm {
         // Don't deallocate our object
         ::std::mem::forget(box_object);
 
-        self.objects.push(object);
+        self.objects.push(object.clone());
 
         self.num_objects += 1;
         object

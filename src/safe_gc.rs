@@ -1,19 +1,19 @@
 const INITIAL_GC_THRESHOLD: usize = 32;
 const DEFAULT_HEAP_SIZE: usize = 1 << 16;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct GcPtr(usize);
 
 impl GcPtr {
     fn mark(&self, heap: &mut Vec<Option<Object>>) {
-        let mut object = heap[self.0].unwrap();
+        let mut object = heap[self.0].clone().unwrap();
 
         if object.marked {
             return;
         }
 
         object.marked = true;
-        heap[self.0] = Some(object);
+        heap[self.0] = Some(object.clone());
 
         if let ObjectType::Pair(pair) = object.obj_type {
             if let Some(head) = pair.head {
@@ -27,19 +27,19 @@ impl GcPtr {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Object {
     marked: bool,
     obj_type: ObjectType,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum ObjectType {
     Int(i64),
     Pair(Pair),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Pair {
     head: Option<GcPtr>,
     tail: Option<GcPtr>,
@@ -86,14 +86,16 @@ impl Vm {
             .enumerate()
             .filter(|elem| elem.1.is_some())
         {
-            let mut obj = object.unwrap();
-            if !obj.marked {
-                self.num_objects -= 1;
+            match object {
+                Some(obj) => if !obj.marked {
+                    self.num_objects -= 1;
 
-                *object = None;
-                self.free_list.push(GcPtr(i));
-            } else {
-                obj.marked = false;
+                    *object = None;
+                    self.free_list.push(GcPtr(i));
+                } else {
+                    object.as_mut().unwrap().marked = false;
+                },
+                None => unreachable!(),
             }
         }
     }
@@ -180,6 +182,12 @@ mod test {
         vm.gc();
 
         assert_eq!(vm.num_objects, 0);
-        assert!(vm.heap.iter().filter(|e| e.is_some()).collect::<Vec<_>>().is_empty())
+        assert!(
+            vm.heap
+                .iter()
+                .filter(|e| e.is_some())
+                .collect::<Vec<_>>()
+                .is_empty()
+        )
     }
 }
