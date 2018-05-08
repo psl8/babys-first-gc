@@ -1,9 +1,9 @@
 #![feature(test)]
-extern crate test;
 extern crate babys_first_gc as gc;
+extern crate test;
 
-use test::*;
 use gc::{safe_gc, unsafe_gc};
+use test::*;
 
 #[bench]
 fn bench_safe_gc(b: &mut Bencher) {

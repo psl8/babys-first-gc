@@ -90,7 +90,7 @@ impl Vm {
 
         // This is only safe if we have exclusive access to every
         // object during garbage collection. Since there is no way
-        // to get a GcPtr out of a Vm and we have a unique reference 
+        // to get a GcPtr out of a Vm and we have a unique reference
         // to self, this invariant should always hold
         unsafe {
             self.mark_all();
@@ -127,7 +127,7 @@ impl Vm {
     pub fn push_pair(&mut self) {
         let tail = Some(self.stack.pop().expect("Stack underflow!"));
         let head = Some(self.stack.pop().expect("Stack underflow!"));
-        let obj = self.new_object(ObjectType::Pair( Pair { head, tail }));
+        let obj = self.new_object(ObjectType::Pair(Pair { head, tail }));
         self.stack.push(obj);
     }
 
