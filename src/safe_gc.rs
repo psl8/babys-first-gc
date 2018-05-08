@@ -86,7 +86,7 @@ impl Vm {
             .enumerate()
             .filter(|elem| elem.1.is_some())
         {
-            match object {
+            match object.clone() {
                 Some(obj) => if !obj.marked {
                     self.num_objects -= 1;
 
