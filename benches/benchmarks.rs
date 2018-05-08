@@ -73,3 +73,47 @@ fn long_bench_unsafe_gc(b: &mut Bencher) {
     });
 }
 
+use gc::c_gc::c_gc;
+#[bench]
+fn bench_c_gc(b: &mut Bencher) {
+    unsafe {
+        let vm = c_gc::newVM();
+
+        b.iter(|| {
+            let num_objects = black_box(64);
+            for i in 0..num_objects {
+                c_gc::pushInt(vm, i);
+            }
+            for _ in 0..(num_objects - 1) {
+                c_gc::pushPair(vm);
+            }
+
+            c_gc::pop(vm);
+            c_gc::gc(vm);
+        });
+
+        c_gc::freeVM(vm);
+    }
+}
+
+#[bench]
+fn long_bench_c_gc(b: &mut Bencher) {
+    unsafe {
+        let vm = c_gc::newVM();
+
+        b.iter(|| {
+            let num_objects = black_box(1 << 16);
+            for i in 0..num_objects {
+                c_gc::pushInt(vm, i);
+            }
+            for _ in 0..(num_objects - 1) {
+                c_gc::pushPair(vm);
+            }
+
+            c_gc::pop(vm);
+            c_gc::gc(vm);
+        });
+
+        c_gc::freeVM(vm);
+    }
+}
