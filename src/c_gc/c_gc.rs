@@ -36,26 +36,20 @@ pub struct VM {
     pub stackSize: ::std::os::raw::c_int,
 }
 extern "C" {
-    #[link_name = "\u{1}_newVM"]
     pub fn newVM() -> *mut VM;
 }
 extern "C" {
-    #[link_name = "\u{1}_pop"]
     pub fn pop(vm: *mut VM) -> *mut Object;
 }
 extern "C" {
-    #[link_name = "\u{1}_pushInt"]
     pub fn pushInt(vm: *mut VM, intValue: ::std::os::raw::c_int);
 }
 extern "C" {
-    #[link_name = "\u{1}_pushPair"]
     pub fn pushPair(vm: *mut VM) -> *mut Object;
 }
 extern "C" {
-    #[link_name = "\u{1}_freeVM"]
     pub fn freeVM(vm: *mut VM);
 }
 extern "C" {
-    #[link_name = "\u{1}_gc"]
     pub fn gc(vm: *mut VM);
 }
