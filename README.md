@@ -1,4 +1,5 @@
 # Baby's First GC
+[![Build Status](https://travis-ci.com/psl8/babys-first-gc.svg?branch=master)](https://travis-ci.com/psl8/babys-first-gc)
 
 This is two translations of the simple mark-sweep GC described in [Baby's First Garbage Collector][1]
 into Rust. One version uses `unsafe` while the other does not. The unsafe GC is a close to 
