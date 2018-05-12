@@ -182,12 +182,6 @@ mod test {
         vm.gc();
 
         assert_eq!(vm.num_objects, 0);
-        assert!(
-            vm.heap
-                .iter()
-                .filter(|e| e.is_some())
-                .collect::<Vec<_>>()
-                .is_empty()
-        )
+        assert!(vm.heap.iter().all(|e| e.is_none()))
     }
 }
