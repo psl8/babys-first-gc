@@ -1,110 +1,114 @@
-#![feature(test)]
+#[macro_use]
+extern crate criterion;
 extern crate babys_first_gc as gc;
-extern crate test;
 
-use gc::{safe_gc, unsafe_gc, c_gc};
-use test::*;
+use criterion::{Criterion, Fun};
+use gc::{c_gc, safe_gc, unsafe_gc};
 
-#[bench]
-fn bench_safe_gc(b: &mut Bencher) {
-    let mut vm = safe_gc::Vm::new();
-    b.iter(|| {
-        let num_objects = black_box(64);
-        for i in 0..num_objects {
-            vm.push_int(i);
-        }
-        for _ in 0..(num_objects - 1) {
-            vm.push_pair();
-        }
+fn short_benchmark(c: &mut Criterion) {
+    let mut safe_vm = safe_gc::Vm::new();
+    let safe_bench = Fun::new("Safe GC", move |b, &num_objects| {
+        b.iter(|| {
+            for i in 0..num_objects {
+                safe_vm.push_int(i);
+            }
+            for _ in 0..(num_objects - 1) {
+                safe_vm.push_pair();
+            }
 
-        vm.drop();
-        vm.gc();
+            safe_vm.drop();
+            safe_vm.gc();
+        })
     });
+
+    let mut unsafe_vm = unsafe_gc::Vm::new();
+    let unsafe_bench = Fun::new("Unsafe GC", move |b, &num_objects| {
+        b.iter(|| {
+            for i in 0..num_objects {
+                unsafe_vm.push_int(i);
+            }
+            for _ in 0..(num_objects - 1) {
+                unsafe_vm.push_pair();
+            }
+
+            unsafe_vm.drop();
+            unsafe_vm.gc();
+        })
+    });
+
+    let mut c_vm = c_gc::Vm::new();
+    let c_bench = Fun::new("C GC", move |b, &num_objects| {
+        b.iter(|| {
+            for i in 0..num_objects {
+                c_vm.push_int(i as i32);
+            }
+            for _ in 0..(num_objects - 1) {
+                c_vm.push_pair();
+            }
+
+            c_vm.drop();
+            c_vm.gc();
+        })
+    });
+
+    let functions = vec![safe_bench, unsafe_bench, c_bench];
+    c.bench_functions("Short bench", functions, 64);
 }
 
-#[bench]
-fn bench_unsafe_gc(b: &mut Bencher) {
-    let mut vm = unsafe_gc::Vm::new();
-    b.iter(|| {
-        let num_objects = black_box(64);
-        for i in 0..num_objects {
-            vm.push_int(i);
-        }
-        for _ in 0..(num_objects - 1) {
-            vm.push_pair();
-        }
+fn long_benchmark(c: &mut Criterion) {
+    let mut safe_vm = safe_gc::Vm::new();
+    let safe_bench = Fun::new("Safe GC", move |b, &num_objects| {
+        b.iter(|| {
+            for i in 0..num_objects {
+                safe_vm.push_int(i);
+            }
+            for _ in 0..(num_objects - 1) {
+                safe_vm.push_pair();
+            }
 
-        vm.drop();
-        vm.gc();
+            safe_vm.drop();
+            safe_vm.gc();
+        })
     });
+
+    let mut unsafe_vm = unsafe_gc::Vm::new();
+    let unsafe_bench = Fun::new("Unsafe GC", move |b, &num_objects| {
+        b.iter(|| {
+            for i in 0..num_objects {
+                unsafe_vm.push_int(i);
+            }
+            for _ in 0..(num_objects - 1) {
+                unsafe_vm.push_pair();
+            }
+
+            unsafe_vm.drop();
+            unsafe_vm.gc();
+        })
+    });
+
+    let mut c_vm = c_gc::Vm::new();
+    let c_bench = Fun::new("C GC", move |b, &num_objects| {
+        b.iter(|| {
+            for i in 0..num_objects {
+                c_vm.push_int(i as i32);
+            }
+            for _ in 0..(num_objects - 1) {
+                c_vm.push_pair();
+            }
+
+            c_vm.drop();
+            c_vm.gc();
+        })
+    });
+
+    let functions = vec![safe_bench, unsafe_bench, c_bench];
+    c.bench_functions("Long bench", functions, 1 << 16);
 }
 
-#[bench]
-fn long_bench_safe_gc(b: &mut Bencher) {
-    let mut vm = safe_gc::Vm::new();
-    b.iter(|| {
-        let num_objects = black_box(1 << 16);
-        for i in 0..num_objects {
-            vm.push_int(i);
-        }
-        for _ in 0..(num_objects - 1) {
-            vm.push_pair();
-        }
 
-        vm.drop();
-        vm.gc();
-    });
-}
-
-#[bench]
-fn long_bench_unsafe_gc(b: &mut Bencher) {
-    let mut vm = unsafe_gc::Vm::new();
-    b.iter(|| {
-        let num_objects = black_box(1 << 16);
-        for i in 0..num_objects {
-            vm.push_int(i);
-        }
-        for _ in 0..(num_objects - 1) {
-            vm.push_pair();
-        }
-
-        vm.drop();
-        vm.gc();
-    });
-}
-
-#[bench]
-fn bench_c_gc(b: &mut Bencher) {
-    let mut vm = c_gc::Vm::new();
-
-    b.iter(|| {
-        let num_objects = black_box(64);
-        for i in 0..num_objects {
-            vm.push_int(i);
-        }
-        for _ in 0..(num_objects - 1) {
-            vm.push_pair();
-        }
-
-        vm.drop();
-        vm.gc();
-    });
-}
-
-#[bench]
-fn long_bench_c_gc(b: &mut Bencher) {
-    let mut vm = c_gc::Vm::new();
-
-    b.iter(|| {
-        let num_objects = black_box(1 << 16);
-        for i in 0..num_objects {
-            vm.push_int(i);
-        }
-        for _ in 0..(num_objects - 1) {
-            vm.push_pair();
-        }
-
-        vm.drop();
-        vm.gc();
-    });
-}
+criterion_group!(
+    benches,
+    short_benchmark,
+    long_benchmark,
+);
+criterion_main!(benches);
