@@ -6,6 +6,12 @@ use self::c_gc_bindings::*;
 
 pub struct Vm(*mut VM);
 
+impl Default for Vm {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Vm {
     pub fn new() -> Self {
         unsafe {
@@ -31,9 +37,9 @@ impl Vm {
         }
     }
 
-    pub fn drop(&mut self) {
+    pub fn pop(&mut self) -> *mut Object {
         unsafe {
-            pop(self.0);
+            pop(self.0)
         }
     }
 }
@@ -82,7 +88,7 @@ mod test {
         assert_ne!(vm.numObjects, 0);
         assert!(!vm.firstObject.is_null());
 
-        vm.drop();
+        vm.pop();
 
         vm.gc();
 

@@ -2,7 +2,7 @@ const INITIAL_GC_THRESHOLD: usize = 32;
 const DEFAULT_HEAP_SIZE: usize = 1 << 16;
 
 #[derive(Clone, Debug)]
-struct GcPtr(usize);
+pub struct GcPtr(usize);
 
 impl GcPtr {
     fn mark(&self, heap: &mut Vec<Option<Object>>) {
@@ -45,6 +45,7 @@ pub struct Pair {
     tail: Option<GcPtr>,
 }
 
+#[derive(Default)]
 pub struct Vm {
     num_objects: usize,
     max_objects: usize,
@@ -75,7 +76,7 @@ impl Vm {
     }
 
     fn mark_all(&mut self) {
-        for object in self.stack.iter() {
+        for object in &self.stack {
             object.mark(&mut self.heap);
         }
     }
@@ -139,14 +140,14 @@ impl Vm {
     }
 
     pub fn push_pair(&mut self) {
-        let tail = Some(self.stack.pop().expect("Stack underflow!"));
-        let head = Some(self.stack.pop().expect("Stack underflow!"));
+        let tail = Some(self.pop());
+        let head = Some(self.pop());
         let obj = self.new_object(ObjectType::Pair(Pair { head, tail }));
         self.stack.push(obj);
     }
 
-    pub fn drop(&mut self) {
-        self.stack.pop();
+    pub fn pop(&mut self) -> GcPtr {
+        self.stack.pop().expect("Stack underflow!")
     }
 }
 
@@ -177,7 +178,7 @@ mod test {
         assert_ne!(vm.num_objects, 0);
         assert_ne!(vm.heap.len(), 0);
 
-        vm.stack.pop();
+        vm.pop();
 
         vm.gc();
 

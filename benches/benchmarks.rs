@@ -16,7 +16,7 @@ fn short_benchmark(c: &mut Criterion) {
                 safe_vm.push_pair();
             }
 
-            safe_vm.drop();
+            safe_vm.pop();
             safe_vm.gc();
         })
     });
@@ -31,7 +31,7 @@ fn short_benchmark(c: &mut Criterion) {
                 unsafe_vm.push_pair();
             }
 
-            unsafe_vm.drop();
+            unsafe_vm.pop();
             unsafe_vm.gc();
         })
     });
@@ -46,7 +46,7 @@ fn short_benchmark(c: &mut Criterion) {
                 c_vm.push_pair();
             }
 
-            c_vm.drop();
+            c_vm.pop();
             c_vm.gc();
         })
     });
@@ -66,7 +66,7 @@ fn long_benchmark(c: &mut Criterion) {
                 safe_vm.push_pair();
             }
 
-            safe_vm.drop();
+            safe_vm.pop();
             safe_vm.gc();
         })
     });
@@ -81,7 +81,7 @@ fn long_benchmark(c: &mut Criterion) {
                 unsafe_vm.push_pair();
             }
 
-            unsafe_vm.drop();
+            unsafe_vm.pop();
             unsafe_vm.gc();
         })
     });
@@ -96,7 +96,7 @@ fn long_benchmark(c: &mut Criterion) {
                 c_vm.push_pair();
             }
 
-            c_vm.drop();
+            c_vm.pop();
             c_vm.gc();
         })
     });

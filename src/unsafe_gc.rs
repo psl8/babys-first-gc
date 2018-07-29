@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 const INITIAL_GC_THRESHOLD: usize = 32;
 
 #[derive(Clone, Debug)]
-struct GcPtr<T>(NonNull<T>);
+pub struct GcPtr<T>(NonNull<T>);
 
 #[derive(Clone, Debug)]
 pub struct Object {
@@ -43,6 +43,7 @@ impl GcPtr<Object> {
     }
 }
 
+#[derive(Default)]
 pub struct Vm {
     num_objects: usize,
     max_objects: usize,
@@ -61,7 +62,7 @@ impl Vm {
     }
 
     unsafe fn mark_all(&mut self) {
-        for object in self.stack.iter_mut() {
+        for object in &mut self.stack {
             object.mark();
         }
     }
@@ -69,7 +70,7 @@ impl Vm {
     unsafe fn sweep(&mut self) {
         let mut live_objects = Vec::new();
 
-        for object_ptr in self.objects.iter_mut() {
+        for object_ptr in &mut self.objects {
             if !object_ptr.0.as_ref().marked {
                 let unreached = object_ptr.0.as_mut();
                 self.num_objects -= 1;
@@ -125,14 +126,14 @@ impl Vm {
     }
 
     pub fn push_pair(&mut self) {
-        let tail = Some(self.stack.pop().expect("Stack underflow!"));
-        let head = Some(self.stack.pop().expect("Stack underflow!"));
+        let tail = Some(self.pop());
+        let head = Some(self.pop());
         let obj = self.new_object(ObjectType::Pair(Pair { head, tail }));
         self.stack.push(obj);
     }
 
-    pub fn drop(&mut self) {
-        self.stack.pop();
+    pub fn pop(&mut self) -> GcPtr<Object> {
+        self.stack.pop().expect("Stack underflow!")
     }
 }
 
@@ -162,7 +163,7 @@ mod test {
         assert_ne!(vm.num_objects, 0);
         assert_ne!(vm.objects.len(), 0);
 
-        vm.stack.pop();
+        vm.pop();
 
         vm.gc();
 
